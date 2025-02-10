@@ -12,8 +12,10 @@ def limpar_nome(nome):
     nome = nome.replace("\n", "_").replace("\r", "_").strip()
     return nome[:100]  # Limita a 100 caracteres para evitar erros com nomes longos
 
-# Função principal para buscar e baixar PDFs
-def baixar_pdfs(url, pasta_destino=r"CAMINHO DO ARQUIVO AQUI", visitados=None, pasta_principal=None, executor=None): 
+# Função principal para buscar e baixar arquivos
+EXTENSOES_VALIDAS = {".pdf", ".extra", ".doe"}
+
+def baixar_arquivos(url, pasta_destino=r"CAMINHO DO ARQUIVO AQUI", visitados=None, pasta_principal=None, executor=None):
     if visitados is None:
         visitados = set()
     
@@ -36,7 +38,7 @@ def baixar_pdfs(url, pasta_destino=r"CAMINHO DO ARQUIVO AQUI", visitados=None, p
         return
     
     soup = BeautifulSoup(response.text, "html.parser")
-    titulo_pagina = limpar_nome(soup.title.string.strip().replace(" ", "_")) if soup.title else "PDFs_Baixados"
+    titulo_pagina = limpar_nome(soup.title.string.strip().replace(" ", "_")) if soup.title else "Arquivos_Baixados"
     
     if pasta_principal is None:
         pasta_principal = os.path.join(pasta_destino, titulo_pagina)
@@ -45,38 +47,39 @@ def baixar_pdfs(url, pasta_destino=r"CAMINHO DO ARQUIVO AQUI", visitados=None, p
     corpo_principal = soup.find("main") or soup.find("div", class_="content") or soup.body
     links = corpo_principal.find_all("a", href=True) if corpo_principal else []
     
-    pdfs_encontrados = False
+    arquivos_encontrados = False
     arquivos_para_baixar = []
     
     for link in links:
         href = link["href"].strip()
-        if href.endswith(".pdf"):
-            pdfs_encontrados = True
-            pdf_url = urljoin(url, href)
-            nome_arquivo = limpar_nome(href.split("/")[-1])
-            arquivos_para_baixar.append((pdf_url, os.path.join(pasta_principal, nome_arquivo)))
+        for extensao in EXTENSOES_VALIDAS:
+            if href.endswith(extensao):
+                arquivos_encontrados = True
+                arquivo_url = urljoin(url, href)
+                nome_arquivo = limpar_nome(href.split("/")[-1])
+                arquivos_para_baixar.append((arquivo_url, os.path.join(pasta_principal, nome_arquivo)))
     
-    if pdfs_encontrados:
+    if arquivos_encontrados:
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-            futures = {executor.submit(baixar_arquivo, pdf_url, caminho_arquivo): pdf_url for pdf_url, caminho_arquivo in arquivos_para_baixar}
+            futures = {executor.submit(baixar_arquivo, arquivo_url, caminho_arquivo): arquivo_url for arquivo_url, caminho_arquivo in arquivos_para_baixar}
             for future in concurrent.futures.as_completed(futures):
                 future.result()
     else:
-        print("Nenhum PDF encontrado. Buscando em links internos...")
+        print("Nenhum arquivo encontrado. Buscando em links internos...")
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
             futures = []
             for link in links:
                 href = link["href"].strip()
-                if not href.endswith(".pdf") and not href.startswith("#"):
+                if not any(href.endswith(ext) for ext in EXTENSOES_VALIDAS) and not href.startswith("#"):
                     sub_url = urljoin(url, href)
                     nome_subpasta = limpar_nome(link.text.strip().replace(" ", "_")) or "Subpagina"
                     pasta_sub = os.path.join(pasta_principal, nome_subpasta)
                     print(f"Acessando: {sub_url} e salvando em {pasta_sub}")
-                    futures.append(executor.submit(baixar_pdfs, sub_url, pasta_destino, visitados, pasta_sub, executor))
+                    futures.append(executor.submit(baixar_arquivos, sub_url, pasta_destino, visitados, pasta_sub, executor))
             for future in concurrent.futures.as_completed(futures):
                 future.result()
 
-# Função para baixar um arquivo PDF com suporte a retomada
+# Função para baixar um arquivo com suporte a retomada
 def baixar_arquivo(url, caminho):
     tentativas = 3
     for tentativa in range(tentativas):
@@ -107,4 +110,4 @@ def baixar_arquivo(url, caminho):
 
 if __name__ == "__main__":
     url_pagina = "LINK DA PÁGINA AQUI"
-    baixar_pdfs(url_pagina)
+    baixar_arquivos(url_pagina)

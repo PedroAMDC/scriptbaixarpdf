@@ -11,7 +11,7 @@ def limpar_nome(nome):
         nome = nome.replace(c, "_")
     return nome.strip()
 
-def baixar_pdfs(url, pasta_destino=r"CAMINHO DO ARQUIVO AQUI", visitados=None, pasta_principal=None):
+def baixar_arquivos(url, pasta_destino=r"CAMINHO DO ARQUIVO AQUI", visitados=None, pasta_principal=None):
     if visitados is None:
         visitados = set()
     
@@ -34,7 +34,7 @@ def baixar_pdfs(url, pasta_destino=r"CAMINHO DO ARQUIVO AQUI", visitados=None, p
         return
     
     soup = BeautifulSoup(response.text, "html.parser")
-    titulo_pagina = limpar_nome(soup.title.string.strip().replace(" ", "_")) if soup.title else "PDFs_Baixados"
+    titulo_pagina = limpar_nome(soup.title.string.strip().replace(" ", "_")) if soup.title else "Arquivos_Baixados"
     
     if pasta_principal is None:
         pasta_principal = os.path.join(pasta_destino, titulo_pagina)
@@ -44,35 +44,35 @@ def baixar_pdfs(url, pasta_destino=r"CAMINHO DO ARQUIVO AQUI", visitados=None, p
     corpo_principal = soup.find("main") or soup.find("div", class_="content") or soup.body
     links = corpo_principal.find_all("a", href=True) if corpo_principal else []
     
-    pdfs_encontrados = False
+    arquivos_encontrados = False
     arquivos_para_baixar = []
     
     for link in links:
         href = link["href"]
-        if href.endswith(".pdf"):
-            pdfs_encontrados = True
-            pdf_url = urljoin(url, href)
+        if href.endswith(('.pdf', '.extra', '.doe')):
+            arquivos_encontrados = True
+            arquivo_url = urljoin(url, href)
             nome_arquivo = href.split("/")[-1]
-            arquivos_para_baixar.append((pdf_url, nome_arquivo))
+            arquivos_para_baixar.append((arquivo_url, nome_arquivo))
     
-    if pdfs_encontrados:
-        for pdf_url, nome_arquivo in arquivos_para_baixar:
+    if arquivos_encontrados:
+        for arquivo_url, nome_arquivo in arquivos_para_baixar:
             caminho_arquivo = os.path.join(pasta_principal, nome_arquivo)
             if not os.path.exists(caminho_arquivo):  # Evita baixar o mesmo arquivo mais de uma vez
-                baixar_arquivo(pdf_url, caminho_arquivo)
+                baixar_arquivo(arquivo_url, caminho_arquivo)
                 print(f"Baixado: {caminho_arquivo}")
             else:
                 print(f"Arquivo já existe: {caminho_arquivo}")
     else:
-        print("Nenhum PDF encontrado. Buscando em links internos...")
+        print("Nenhum arquivo encontrado. Buscando em links internos...")
         for link in links:
             href = link["href"]
-            if not href.endswith(".pdf") and not href.startswith("#") and href.startswith("http"):
+            if not href.endswith(('.pdf', '.extra', '.doe')) and not href.startswith("#") and href.startswith("http"):
                 sub_url = urljoin(url, href)
                 nome_subpasta = limpar_nome(link.text.strip().replace(" ", "_")) or "Subpagina"
                 pasta_sub = os.path.join(pasta_principal, nome_subpasta)
                 print(f"Acessando: {sub_url} e salvando em {pasta_sub}")
-                baixar_pdfs(sub_url, pasta_destino, visitados, pasta_sub)
+                baixar_arquivos(sub_url, pasta_destino, visitados, pasta_sub)
 
 def baixar_arquivo(url, caminho):
     tentativas = 3
@@ -96,4 +96,4 @@ def baixar_arquivo(url, caminho):
 
 if __name__ == "__main__":
     url_pagina = "LINK DA PÁGINA AQUI"
-    baixar_pdfs(url_pagina)
+    baixar_arquivos(url_pagina)

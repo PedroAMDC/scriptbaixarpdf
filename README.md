@@ -4,9 +4,9 @@
 # Esse é um script em python destinado ao download automático de arquivos PDF
 
 
-1. Coloque o endereço do caminho onde os arquivos serão baixados na linha 16 (multi) ou linha 14 (mono).
+1. Coloque o endereço do caminho onde os arquivos serão baixados na linha 18 (multi) ou linha 14 (mono).
 
-2. Coloque o link do site na linha 109 (multi) ou linha 98 (mono).
+2. Coloque o link do site na linha 112 (multi) ou linha 98 (mono).
 
 - Mono: Versão do código mais simples e sequencial, baixa 1 arquivo por vez.
 
